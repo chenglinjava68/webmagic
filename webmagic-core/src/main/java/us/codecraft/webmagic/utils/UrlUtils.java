@@ -74,6 +74,11 @@ public class UrlUtils {
         return patternForProtocal.matcher(url).replaceAll("");
     }
 
+    /**
+     * 根据URl获取域名
+     * @param url
+     * @return
+     */
     public static String getDomain(String url) {
         String domain = removeProtocol(url);
         int i = StringUtils.indexOf(domain, "/", 1);

@@ -82,15 +82,15 @@ public class Spider implements Runnable, Task {
 
     protected int threadNum = 1;
 
-    protected AtomicInteger stat = new AtomicInteger(STAT_INIT);
+    protected AtomicInteger stat = new AtomicInteger(STAT_INIT);// 存储运行状态，初始化为 0
 
     protected boolean exitWhenComplete = true;
 
-    protected final static int STAT_INIT = 0;
+    protected final static int STAT_INIT = 0;       // 运行初始化状态
 
-    protected final static int STAT_RUNNING = 1;
+    protected final static int STAT_RUNNING = 1;    // 运行状态
 
-    protected final static int STAT_STOPPED = 2;
+    protected final static int STAT_STOPPED = 2;    // 停止状态
 
     protected boolean spawnUrl = true;
 
@@ -120,7 +120,7 @@ public class Spider implements Runnable, Task {
     }
 
     /**
-     * create a spider with pageProcessor.
+     * create a spider with pageProcessor. 初始化pageProcessor、Site和 StartRequests
      *
      * @param pageProcessor pageProcessor
      */
@@ -276,43 +276,46 @@ public class Spider implements Runnable, Task {
         return this;
     }
 
+    /**
+     * 初始化必需的组件
+     */
     protected void initComponent() {
-        if (downloader == null) {
+        if (downloader == null) { // 下载器
             this.downloader = new HttpClientDownloader();
         }
-        if (pipelines.isEmpty()) {
+        if (pipelines.isEmpty()) {  // 存储方式 默认：控制台输出
             pipelines.add(new ConsolePipeline());
         }
-        downloader.setThread(threadNum);
-        if (threadPool == null || threadPool.isShutdown()) {
-            if (executorService != null && !executorService.isShutdown()) {
-                threadPool = new CountableThreadPool(threadNum, executorService);
+        downloader.setThread(threadNum); // 下载线程 告诉下载器有多少线程所使用的蜘蛛
+        if (threadPool == null || threadPool.isShutdown()) { // 自定义线程池为空或者已被关闭
+            if (executorService != null && !executorService.isShutdown()) {  // JDK线程池不为空或者没被关闭
+                threadPool = new CountableThreadPool(threadNum, executorService); //外部指定一个线程池
             } else {
-                threadPool = new CountableThreadPool(threadNum);
+                threadPool = new CountableThreadPool(threadNum);// 创建一个自定义的线程池（默认是用 Executors.newFixedThreadPool(threadNum) 实现）
             }
         }
-        if (startRequests != null) {
+        if (startRequests != null) { // 开始的请求是否为空（是否已指定）
             for (Request request : startRequests) {
-                scheduler.push(request, this);
+                scheduler.push(request, this); //把所有的请求放到scheduler中
             }
-            startRequests.clear();
+            startRequests.clear(); // 清空开始指定的列表
         }
-        startTime = new Date();
+        startTime = new Date(); // 记录开始时间
     }
 
     @Override
     public void run() {
-        checkRunningStat();
-        initComponent();
+        checkRunningStat(); // 检查运行状态
+        initComponent();    // 初始化组件
         logger.info("Spider " + getUUID() + " started!");
-        while (!Thread.currentThread().isInterrupted() && stat.get() == STAT_RUNNING) {
-            Request request = scheduler.poll(this);
+        while (!Thread.currentThread().isInterrupted() && stat.get() == STAT_RUNNING) {// 该线程终止和状态是否是运行状态
+            Request request = scheduler.poll(this); // poll当前请求
             if (request == null) {
-                if (threadPool.getThreadAlive() == 0 && exitWhenComplete) {
+                if (threadPool.getThreadAlive() == 0 && exitWhenComplete) { // 先判断是否已没有线程存活，如果没有线程存活则结束循环 结束爬虫
                     break;
                 }
                 // wait until new url added
-                waitNewUrl();
+                waitNewUrl(); // 等待新的URL加入
             } else {
                 final Request requestFinal = request;
                 threadPool.execute(new Runnable() {
@@ -330,7 +333,7 @@ public class Spider implements Runnable, Task {
                                         .getExtra(Request.STATUS_CODE));
                             }
                             pageCount.incrementAndGet();
-                            signalNewUrl();
+                            signalNewUrl(); // 调用signalNewUrl()来通知主线程，停止等待！
                         }
                     }
                 });
@@ -359,13 +362,16 @@ public class Spider implements Runnable, Task {
         }
     }
 
+    /**
+     * Cheng:检查现在的运行状态
+     */
     private void checkRunningStat() {
         while (true) {
-            int statNow = stat.get();
-            if (statNow == STAT_RUNNING) {
+            int statNow = stat.get();// 获取当前的运行状态
+            if (statNow == STAT_RUNNING) { //如果运行状态是运行状态 则抛出异常
                 throw new IllegalStateException("Spider is already running!");
             }
-            if (stat.compareAndSet(statNow, STAT_RUNNING)) {
+            if (stat.compareAndSet(statNow, STAT_RUNNING)) { // 如果当前的状态是停止 则改变为运行状态
                 break;
             }
         }
@@ -446,11 +452,14 @@ public class Spider implements Runnable, Task {
         }
     }
 
+    /**
+     * 处理Request 获取域名并把Request放入scheduler
+     */
     private void addRequest(Request request) {
         if (site.getDomain() == null && request != null && request.getUrl() != null) {
-            site.setDomain(UrlUtils.getDomain(request.getUrl()));
+            site.setDomain(UrlUtils.getDomain(request.getUrl())); // 获取域名
         }
-        scheduler.push(request, this);
+        scheduler.push(request, this); // 放入scheduler
     }
 
     protected void checkIfRunning() {
@@ -471,7 +480,7 @@ public class Spider implements Runnable, Task {
      * @param urls urls
      * @return this
      */
-    public Spider addUrl(String... urls) {
+    public Spider addUrl(String... urls) { // 增加一个爬虫Url（一般为爬虫入口）
         for (String url : urls) {
             addRequest(new Request(url));
         }
@@ -524,7 +533,7 @@ public class Spider implements Runnable, Task {
         for (Request request : requests) {
             addRequest(request);
         }
-        signalNewUrl();
+        signalNewUrl();// 调用signalNewUrl()来通知主线程，停止等待！
         return this;
     }
 
@@ -542,7 +551,7 @@ public class Spider implements Runnable, Task {
             newUrlLock.unlock();
         }
     }
-
+    // 调用signalNewUrl()来通知主线程，停止等待！
     private void signalNewUrl() {
         try {
             newUrlLock.lock();
@@ -689,6 +698,9 @@ public class Spider implements Runnable, Task {
         return this;
     }
 
+    /**
+     * 给改爬虫起一个名字，如果没有设置域名则用UUID
+     */
     @Override
     public String getUUID() {
         if (uuid != null) {

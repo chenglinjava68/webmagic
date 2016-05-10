@@ -37,7 +37,7 @@ public class Site {
 
     private int retryTimes = 0;
 
-    private int cycleRetryTimes = 0;
+    private int cycleRetryTimes = 0;//cycleRetryTimes，该机制会将下载失败的url重新放入队列重试，直到达到重试次数，以保证不因为某些网络原因漏抓页面。默认不打开，可通过site.setCycleRetryTimes设置此项，目前只支持HttpClientDownloader和RedisScheduler。
 
     private int retrySleepTime = 1000;
 

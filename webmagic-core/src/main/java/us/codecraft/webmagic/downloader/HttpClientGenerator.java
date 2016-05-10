@@ -55,13 +55,10 @@ public class HttpClientGenerator {
         if (site == null || site.isUseGzip()) {
             httpClientBuilder.addInterceptorFirst(new HttpRequestInterceptor() {
 
-                public void process(
-                        final HttpRequest request,
-                        final HttpContext context) throws HttpException, IOException {
+                public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
                     if (!request.containsHeader("Accept-Encoding")) {
                         request.addHeader("Accept-Encoding", "gzip");
                     }
-
                 }
             });
         }

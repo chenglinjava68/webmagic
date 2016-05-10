@@ -51,16 +51,13 @@ public class CountableThreadPool {
     private ExecutorService executorService;
 
     public void execute(final Runnable runnable) {
-
-
         if (threadAlive.get() >= threadNum) {
             try {
                 reentrantLock.lock();
                 while (threadAlive.get() >= threadNum) {
                     try {
                         condition.await();
-                    } catch (InterruptedException e) {
-                    }
+                    } catch (InterruptedException e) { }
                 }
             } finally {
                 reentrantLock.unlock();
