@@ -60,6 +60,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Spider implements Runnable, Task {
 
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+
     protected Downloader downloader;
 
     protected List<Pipeline> pipelines = new ArrayList<Pipeline>();
@@ -73,8 +75,6 @@ public class Spider implements Runnable, Task {
     protected String uuid;
 
     protected Scheduler scheduler = new QueueScheduler();
-
-    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected CountableThreadPool threadPool;
 
